@@ -46,12 +46,10 @@ jobs:
           echo "repo_name=$REPO_NAME" >> $GITHUB_ENV
 
   call-workflow:
-    runs-on: ubuntu-latest
+    name: Trigger Reusable Workflow from jira-integration
     needs: extract-information
-    steps:
-      - name: Trigger Reusable Workflow from jira-integration
-        uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
-        with:
-          CM_IDS: ${{ needs.extract-information.outputs.cm_ids }}
-          JIRA_IDS: ${{ needs.extract-information.outputs.jira_ids }}
-          REPO_NAME: ${{ needs.extract-information.outputs.repo_name }}
+    uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
+    with:
+      CM_IDS: ${{ needs.extract-information.outputs.cm_ids }}
+      JIRA_IDS: ${{ needs.extract-information.outputs.jira_ids }}
+      REPO_NAME: ${{ needs.extract-information.outputs.repo_name }}
