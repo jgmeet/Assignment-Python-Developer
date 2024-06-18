@@ -9,48 +9,49 @@ jobs:
   extract-information:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository content
-      uses: actions/checkout@v4
+      - name: Checkout repository content
+        uses: actions/checkout@v4
 
-    - name: Extract CM and Jira Issue IDs from PR description
-      id: extract_issue_ids
-      run: |
-        CM_REGEX='#CM-[0-9]+'
-        JIRA_REGEX='#([A-Z]+[A-Z0-9]*-[0-9]+)'
+      - name: Extract CM and Jira Issue IDs from PR description
+        id: extract_issue_ids
+        run: |
+          CM_REGEX='#CM-[0-9]+'
+          JIRA_REGEX='#([A-Z]+[A-Z0-9]*-[0-9]+)'
 
-        # Get the pull request description
-        PR_DESCRIPTION="${{ github.event.pull_request.body }}"
+          # Get the pull request description
+          PR_DESCRIPTION="${{ github.event.pull_request.body }}"
 
-        # Extract all matching JIRA IDs
-        CM_IDS=$(echo "$PR_DESCRIPTION" | grep -oE "$CM_REGEX" | tr -d '#' | paste -sd ',' -)
-        OTHER_IDS=$(echo "$PR_DESCRIPTION" | grep -oE "$JIRA_REGEX" | grep -vE "$CM_REGEX" | tr -d '#' | paste -sd ',' -)
+          # Extract all matching JIRA IDs
+          CM_IDS=$(echo "$PR_DESCRIPTION" | grep -oE "$CM_REGEX" | tr -d '#' | paste -sd ',' -)
+          OTHER_IDS=$(echo "$PR_DESCRIPTION" | grep -oE "$JIRA_REGEX" | grep -vE "$CM_REGEX" | tr -d '#' | paste -sd ',' -)
 
-        if [ -z "$CM_IDS" ]; then
-          echo "ERROR: No change-management issue id found in PR description."
-          exit 1
-        fi
+          if [ -z "$CM_IDS" ]; then
+            echo "ERROR: No change-management issue id found in PR description."
+            exit 1
+          fi
 
-        if [ -z "$OTHER_IDS" ]; then
-          echo "ERROR: No JIRA project issue found in PR description."
-          exit 1
-        fi
+          if [ -z "$OTHER_IDS" ]; then
+            echo "ERROR: No JIRA project issue found in PR description."
+            exit 1
+          fi
 
-        # Extract repo name
-        REPO_NAME=$(basename -s .git `git config --get remote.origin.url`)
+          # Extract repo name
+          REPO_NAME=$(basename -s .git `git config --get remote.origin.url`)
 
-        echo "Change-management IDs: $CM_IDS"
-        echo "Other JIRA issue IDs: $OTHER_IDS"
-        echo "Repo Name: $REPO_NAME"
-        echo "cm_ids=$CM_IDS" >> $GITHUB_ENV
-        echo "jira_ids=$OTHER_IDS" >> $GITHUB_ENV
-        echo "repo_name=$REPO_NAME" >> $GITHUB_ENV
+          echo "Change-management IDs: $CM_IDS"
+          echo "Other JIRA issue IDs: $OTHER_IDS"
+          echo "Repo Name: $REPO_NAME"
+          echo "cm_ids=$CM_IDS" >> $GITHUB_ENV
+          echo "jira_ids=$OTHER_IDS" >> $GITHUB_ENV
+          echo "repo_name=$REPO_NAME" >> $GITHUB_ENV
 
   call-workflow:
     runs-on: ubuntu-latest
     needs: extract-information
-
-    uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
-    with:
-      CM_IDS: ${{ env.cm_ids }}
-      JIRA_IDS: ${{ env.jira_ids }}
-      REPO_NAME: ${{ env.repo_name }}
+    steps:
+      - name: Trigger Reusable Workflow from jira-integration
+        uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
+        with:
+          CM_IDS: ${{ needs.extract-information.outputs.cm_ids }}
+          JIRA_IDS: ${{ needs.extract-information.outputs.jira_ids }}
+          REPO_NAME: ${{ needs.extract-information.outputs.repo_name }}
