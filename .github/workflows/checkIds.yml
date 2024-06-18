@@ -8,6 +8,10 @@ on:
 jobs:
   extract-information:
     runs-on: ubuntu-latest
+    outputs:
+      cm_ids: ${{ steps.extract_issue_ids.outputs.cm_ids }}
+      jira_ids: ${{ steps.extract_issue_ids.outputs.jira_ids }}
+      repo_name: ${{ steps.extract_issue_ids.outputs.repo_name }}
     steps:
       - name: Checkout repository content
         uses: actions/checkout@v4
@@ -41,15 +45,15 @@ jobs:
           echo "Change-management IDs: $CM_IDS"
           echo "Other JIRA issue IDs: $OTHER_IDS"
           echo "Repo Name: $REPO_NAME"
-          echo "cm_ids=$CM_IDS" >> $GITHUB_OUTPUT
-          echo "jira_ids=$OTHER_IDS" >> $GITHUB_OUTPUT
-          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "::set-output name=cm_ids::$CM_IDS"
+          echo "::set-output name=jira_ids::$OTHER_IDS"
+          echo "::set-output name=repo_name::$REPO_NAME"
 
   call-workflow:
-    name: Trigger Reusable Workflow from jira-integration
+  - name: Run workflow
     needs: extract-information
     uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
     with:
-      CM_IDS: ${{ needs.extract-information.outputs.cm_ids }}
-      JIRA_IDS: ${{ needs.extract-information.outputs.jira_ids }}
-      REPO_NAME: ${{ needs.extract-information.outputs.repo_name }}
+      cm_ids: ${{ needs.extract-information.outputs.cm_ids }}
+      jira_ids: ${{ needs.extract-information.outputs.jira_ids }}
+      repo_name: ${{ needs.extract-information.outputs.repo_name }}
