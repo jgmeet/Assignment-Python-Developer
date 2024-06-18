@@ -49,8 +49,8 @@ jobs:
           echo "::set-output name=jira_ids::$OTHER_IDS"
           echo "::set-output name=repo_name::$REPO_NAME"
 
-  call-workflow:
-  - name: Run workflow
+   call-workflow:
+    name: Trigger Reusable Workflow from jira-integration
     needs: extract-information
     uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
     with:
