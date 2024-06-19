@@ -1,0 +1,14 @@
+name: Adding Comment to Issues After Successful Merge
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  call-workflow:
+    name: Add comment to Issues provided in PR description
+    uses: jgmeet/jira-integration/.github/workflows/comment-after-merge.yml@main
+    secrets: inherit
