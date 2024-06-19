@@ -6,55 +6,7 @@ on:
       - main
 
 jobs:
-  extract-information:
-    runs-on: ubuntu-latest
-    outputs:
-      cm_ids: ${{ steps.extract_issue_ids.outputs.cm_ids }}
-      jira_ids: ${{ steps.extract_issue_ids.outputs.jira_ids }}
-      repo_name: ${{ steps.extract_issue_ids.outputs.repo_name }}
-    steps:
-      - name: Checkout repository content
-        uses: actions/checkout@v4
-
-      - name: Extract CM and Jira Issue IDs from PR description
-        id: extract_issue_ids
-        run: |
-          CM_REGEX='#CM-[0-9]+'
-          JIRA_REGEX='#([A-Z]+[A-Z0-9]*-[0-9]+)'
-
-          # Get the pull request description
-          PR_DESCRIPTION="${{ github.event.pull_request.body }}"
-
-          # Extract all matching JIRA IDs
-          CM_IDS=$(echo "$PR_DESCRIPTION" | grep -oE "$CM_REGEX" | tr -d '#' | paste -sd ',' -)
-          OTHER_IDS=$(echo "$PR_DESCRIPTION" | grep -oE "$JIRA_REGEX" | grep -vE "$CM_REGEX" | tr -d '#' | paste -sd ',' -)
-
-          if [ -z "$CM_IDS" ]; then
-            echo "ERROR: No change-management issue id found in PR description."
-            exit 1
-          fi
-
-          if [ -z "$OTHER_IDS" ]; then
-            echo "ERROR: No JIRA project issue found in PR description."
-            exit 1
-          fi
-
-          # Extract repo name
-          REPO_NAME=$(basename -s .git `git config --get remote.origin.url`)
-
-          echo "Change-management IDs: $CM_IDS"
-          echo "Other JIRA issue IDs: $OTHER_IDS"
-          echo "Repo Name: $REPO_NAME"
-          echo "::set-output name=cm_ids::$CM_IDS"
-          echo "::set-output name=jira_ids::$OTHER_IDS"
-          echo "::set-output name=repo_name::$REPO_NAME"
-
   call-workflow:
     name: Trigger Reusable Workflow from jira-integration
-    needs: extract-information
     uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
-    with:
-      cm_ids: ${{ needs.extract-information.outputs.cm_ids }}
-      jira_ids: ${{ needs.extract-information.outputs.jira_ids }}
-      repo_name: ${{ needs.extract-information.outputs.repo_name }}
     secrets: inherit
