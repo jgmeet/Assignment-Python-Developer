@@ -1,12 +1,18 @@
 name: Checking Change Request & Jira IDs provided in PR description
-
-on:
+on: 
   pull_request:
     branches:
       - main
 
 jobs:
-  call-workflow:
+  checking-ids:
     name: Check for Change Request & Jira IDs provided in PR description
     uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
+    secrets: inherit
+
+  add-comments:
+    if: github.event.pull_request.merged == true
+    name: Add comment to Issues provided in PR description
+    needs: checking-ids
+    uses: jgmeet/jira-integration/.github/workflows/comment-after-merge.yml@main
     secrets: inherit
