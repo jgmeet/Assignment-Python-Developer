@@ -3,9 +3,13 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - closed
 
 jobs:
   checking-ids:
+    if: github.event.action == 'opened'
     name: Check for Change Request & Jira IDs provided in PR description
     uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
     secrets: inherit
