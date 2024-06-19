@@ -57,3 +57,4 @@ jobs:
       cm_ids: ${{ needs.extract-information.outputs.cm_ids }}
       jira_ids: ${{ needs.extract-information.outputs.jira_ids }}
       repo_name: ${{ needs.extract-information.outputs.repo_name }}
+    secrets: inherit
