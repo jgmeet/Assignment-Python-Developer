@@ -1,4 +1,4 @@
-name: Check for CM and Jira issue IDs provided in PR description
+name: Checking Change Request & Jira IDs provided in PR description
 
 on:
   pull_request:
@@ -7,6 +7,6 @@ on:
 
 jobs:
   call-workflow:
-    name: Trigger Reusable Workflow from jira-integration
+    name: Check for Change Request & Jira IDs provided in PR description
     uses: jgmeet/jira-integration/.github/workflows/merge-check.yml@main
     secrets: inherit
