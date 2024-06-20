@@ -1,4 +1,5 @@
-name: Checking Change Request & Jira IDs provided in PR description
+name: PR Checks and Build
+
 on: 
   pull_request:
     branches:
@@ -19,3 +20,55 @@ jobs:
     name: Add comment to Issues provided in PR description
     uses: jgmeet/jira-integration/.github/workflows/comment-after-merge.yml@main
     secrets: inherit
+
+  build_and_analyze:
+    name: Build and Analyze with SonarQube
+    runs-on: ubuntu-latest
+    needs: [checking-ids]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: -Dsonar.qualitygate.wait=true
+
+      - name: SonarQube Quality Gate check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # This will cause the workflow to fail if the Quality Gate fails
+
+      - name: Get SonarQube Measures
+        id: get_sonar_measures
+        run: |
+          PROJECT_KEY="eduvanz-team_test-repo_AZAwU-coD2kBIp-RDRfG" # Replace with your actual project key
+          MEASURES=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: ${SONAR_HOST_URL}/api/measures/component?component=${PROJECT_KEY}&metricKeys=coverage,lines,code_smells)
+          echo "MEASURES=$MEASURES" >> $GITHUB_ENV
+          echo "::set-output name=measures::$MEASURES"
+
+      - name: Print SonarQube Measures
+        run: |
+          echo "SonarQube Measures: ${{ steps.get_sonar_measures.outputs.measures }}"
+
+      - name: Post SonarQube Measures to PR
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          MEASURES=${{ steps.get_sonar_measures.outputs.measures }}
+          COMMENT="SonarQube Measures:\n\`\`\`json\n$MEASURES\n\`\`\`"
+          echo "Posting SonarQube measures to PR #$PR_NUMBER"
+          curl -s -H "Authorization: token $GITHUB_TOKEN" \
+               -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"body\": \"$COMMENT\"}" \
+               "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments"
